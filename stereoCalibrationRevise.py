@@ -1,6 +1,19 @@
 import cv2
 import os
 import numpy as np
+from spatial_transform import multiply_transform, get_rvec
+
+
+def left_RT_to_right_RT(R, T, rvecs_l, tvecs_l):
+    rvecs_r = []
+    tvecs_r = []
+    for i in range(len(rvecs_l)):
+        rvec_l = rvecs_l[i]
+        tvec_l = tvecs_l[i]
+        rvec_r, tvec_r = multiply_transform(get_rvec(np.matrix(R)), np.matrix(T.reshape([3,1])), np.matrix(rvec_l.reshape([3,1])), np.matrix(tvec_l.reshape([3,1])))
+        rvecs_r.append(rvec_r)
+        tvecs_r.append(tvec_r)
+    return rvecs_r, tvecs_r
 
 def render():
     cwd = os.getcwd()
@@ -76,82 +89,74 @@ def stereoCalibrationRevise(
     render()
 
     obj_pts_list = [obj_pts for i in range(N_l)]
-    true_pts_list_l = []
+    #true_pts_list_l = []
+    revised_pts_list_l = []
     for idx in range(image_nums):
         render_path = 'temp_files/render_result/%02d_L.png'%idx
         img = cv2.imread(render_path)
 
         is_found, center_pts = cv2.findCirclesGrid(cv2.bitwise_not(img), patternSize=(9, 13), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
         true_pts, _ = cv2.projectPoints(obj_pts, rvecs_l[idx], tvecs_l[idx], camera_matrix_1, dist_coeffs_1)
-        true_pts_list_l.append(true_pts)
+        image_pts = image_pts_list_l[idx]
+        revised_pts = []
+        #true_pts_list_l.append(true_pts)
         for i in range(center_pts.shape[0]):
             true_pt = true_pts[i][0]
             center_pt = center_pts[i][0]
+            image_pt = image_pts[i]
             scaled_true_pt = (true_pt-center_pt)*500 + center_pt
+            revised_pt = (true_pt-center_pt) + image_pt
+            revised_pts.append(revised_pt)
             center_pt = np.array(center_pt).astype(np.int32)
             scaled_true_pt = np.array(scaled_true_pt).astype(np.int32)
             cv2.circle(img, center_pt, 3, (0, 0, 255), -1)
             cv2.line(img, center_pt, scaled_true_pt, (0, 255, 0), 1)
+        revised_pts_list_l.append(np.array(revised_pts))
         cv2.imwrite('temp_files/show_true_point/%02d_L.png'%idx, img)
 
-    true_pts_list_r = []
+    #true_pts_list_r = []
+    revised_pts_list_r = []
     for idx in range(image_nums):
         render_path = 'temp_files/render_result/%02d_R.png'%idx
         img = cv2.imread(render_path)
         is_found, center_pts = cv2.findCirclesGrid(cv2.bitwise_not(img), patternSize=(9, 13), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
         true_pts, _ = cv2.projectPoints(obj_pts, rvecs_r[idx], tvecs_r[idx], camera_matrix_2, dist_coeffs_2)
-        true_pts_list_r.append(true_pts)
+        image_pts = image_pts_list_r[idx]
+        revised_pts = []
+        #true_pts_list_r.append(true_pts)
         for i in range(center_pts.shape[0]):
             true_pt = true_pts[i][0]
             center_pt = center_pts[i][0]
+            image_pt = image_pts[i]
             scaled_true_pt = (true_pt-center_pt)*500 + center_pt
+            revised_pt = (true_pt-center_pt) + image_pt
+            revised_pts.append(revised_pt)
             center_pt = np.array(center_pt).astype(np.int32)
             scaled_true_pt = np.array(scaled_true_pt).astype(np.int32)
             cv2.circle(img, center_pt, 3, (0, 0, 255), -1)
             cv2.line(img, center_pt, scaled_true_pt, (0, 255, 0), 1)
+        revised_pts_list_r.append(np.array(revised_pts))
         cv2.imwrite('temp_files/show_true_point/%02d_R.png'%idx, img)
 
-    # 双目标定
-    print('obj_pts_list:', len(obj_pts_list))
-    print('true_pts_list_l:', len(true_pts_list_l))
-    print('true_pts_list_r:', len(true_pts_list_r))
+    #revised_pts_list_l = np.array(revised_pts_list_l)
+    #revised_pts_list_r = np.array(revised_pts_list_r)
 
     (
         re_projection_err,
         camera_matrix_1,
         dist_coeffs_1,
-        rvecs_l,
-        tvecs_l,
-    ) = cv2.calibrateCamera(
-        objectPoints=obj_pts_list,
-        imagePoints=true_pts_list_l,
-        imageSize=image_size,
-        cameraMatrix=None,
-        distCoeffs=None,
-    )
-    print("camera_matrix_r", camera_matrix_1)
-    print("dist_coeffs_r", dist_coeffs_1)
-
-    (
-        re_projection_err,
         camera_matrix_2,
         dist_coeffs_2,
-        rvecs_r,
-        tvecs_r,
-    ) = cv2.calibrateCamera(
+        R,
+        T,
+        E,
+        F, 
+        rvecs_l, tvecs_l, 
+        perViewErrors
+    ) = cv2.stereoCalibrateExtended(
         objectPoints=obj_pts_list,
-        imagePoints=true_pts_list_r,
-        imageSize=image_size,
-        cameraMatrix=None,
-        distCoeffs=None,
-    )
-    print("camera_matrix_r", camera_matrix_2)
-    print("dist_coeffs_r", dist_coeffs_2)
-
-    re_projection_err, camera_matrix_1, dist_coeffs_1, camera_matrix_2, dist_coeffs_2, R, T, E, F = cv2.stereoCalibrate(
-        objectPoints=obj_pts_list,
-        imagePoints1=true_pts_list_l,
-        imagePoints2=true_pts_list_r,
+        imagePoints1=revised_pts_list_l,
+        imagePoints2=revised_pts_list_r,
         cameraMatrix1=camera_matrix_1,
         distCoeffs1=dist_coeffs_1,
         cameraMatrix2=camera_matrix_2,
@@ -161,6 +166,12 @@ def stereoCalibrationRevise(
         T=T,
         flags=cv2.CALIB_FIX_INTRINSIC
     )
+
+    rvecs_r, tvecs_r = left_RT_to_right_RT(R, T, rvecs_l, tvecs_l)
+
+    #show_reproject_error( obj_pts, revised_pts_list_l, camera_matrix_1, dist_coeffs_1, rvecs_l, tvecs_l, image_size)
+    #show_reproject_error( obj_pts, revised_pts_list_r, camera_matrix_2, dist_coeffs_2, rvecs_r, tvecs_r, image_size)
+
 
     return re_projection_err, camera_matrix_1, dist_coeffs_1, camera_matrix_2, dist_coeffs_2, R, T, E, F, rvecs_l, tvecs_l, rvecs_r, tvecs_r
 
@@ -185,13 +196,13 @@ def show_reproject_error(
         for i in range(len(true_pts)):
             true_pt = true_pts[i][0]
             center_pt = image_pts_list[idx][i]
-            scaled_true_pt = (true_pt-center_pt)*1 + center_pt
+            scaled_true_pt = (true_pt-center_pt)*100 + center_pt
             center_pt = np.array(center_pt).astype(np.int32)
             scaled_true_pt = np.array(scaled_true_pt).astype(np.int32)
             cv2.circle(image, center_pt, 1, (0, 0, 255), -1)
             cv2.line(image, center_pt, scaled_true_pt, (0, 255, 0), 1)
     cv2.imshow('reprojection error', image)
-    cv2.waitKey(1)
+    cv2.waitKey(0)
     cv2.destroyAllWindows()
 
     return 

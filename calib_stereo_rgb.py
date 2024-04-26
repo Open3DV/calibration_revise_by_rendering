@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 import yaml
-from stereoCalibrationRevise import stereoCalibrationRevise, show_reproject_error
+from stereoCalibrationRevise import stereoCalibrationRevise, show_reproject_error, left_RT_to_right_RT
+
 
 def Rt2T(R_3x3, t_vec3):
     T_4x4 = np.eye(4, dtype="float64")
@@ -99,13 +100,12 @@ camera_matrix_l, dist_coeffs_l, image_pts_list_l, obj_pts_list_l, image_list_num
 print("camera_matrix_l", camera_matrix_l)
 print("dist_coeffs_l", dist_coeffs_l)
 
-show_reproject_error( obj_pts, image_pts_list_l, camera_matrix_l, dist_coeffs_l, rvecs_l, tvecs_l, image_size)
-
 camera_matrix_r, dist_coeffs_r, image_pts_list_r, obj_pts_list_r, image_list_num_r, rvecs_r, tvecs_r = single_calibrate(image_list_r, obj_pts)
 print("camera_matrix_r", camera_matrix_r)
 print("dist_coeffs_r", dist_coeffs_r)
 
-show_reproject_error( obj_pts, image_pts_list_r, camera_matrix_r, dist_coeffs_r, rvecs_r, tvecs_r, image_size)
+#show_reproject_error( obj_pts, image_pts_list_l, camera_matrix_l, dist_coeffs_l, rvecs_l, tvecs_l, image_size)
+#show_reproject_error( obj_pts, image_pts_list_r, camera_matrix_r, dist_coeffs_r, rvecs_r, tvecs_r, image_size)
 
 image_pts_list_l_temp = []
 image_pts_list_r_temp = []
@@ -144,8 +144,10 @@ assert len(image_pts_list_l) == len(image_pts_list_r), "not found equal num of b
     R,
     T,
     E,
-    F,
-) = cv2.stereoCalibrate(
+    F, 
+    rvecs_l, tvecs_l, 
+    perViewErrors
+) = cv2.stereoCalibrateExtended(
     objectPoints=obj_pts_list_l,
     imagePoints1=image_pts_list_l,
     imagePoints2=image_pts_list_r,
@@ -159,6 +161,7 @@ assert len(image_pts_list_l) == len(image_pts_list_r), "not found equal num of b
     T=None,
 )
 
+rvecs_r, tvecs_r = left_RT_to_right_RT(R, T, rvecs_l, tvecs_l)
 
 print('stereo err: ', re_projection_err)
 print('camera_matrix_l: ', camera_matrix_1)
@@ -169,23 +172,41 @@ print('dist_coeffs_r: ', dist_coeffs_2)
 print('R: ', R)
 print('T: ', T)
 
-(
-    re_projection_err,
-    camera_matrix_1, dist_coeffs_1,
-    camera_matrix_2, dist_coeffs_2,
-    R, T, E, F,
-    rvecs_l, tvecs_l, rvecs_r, tvecs_r,
-) = stereoCalibrationRevise(
-    image_list_l, image_list_r,
-    camera_matrix_1, dist_coeffs_1,
-    camera_matrix_2, dist_coeffs_2,
-    image_pts_list_l, image_pts_list_r,
-    obj_pts,
-    rvecs_l, tvecs_l, rvecs_r, tvecs_r,
-    R, T,
-    image_size,
-    image_nums
-)
+
+for i in range(0):
+    (
+        re_projection_err,
+        camera_matrix_1, dist_coeffs_1,
+        camera_matrix_2, dist_coeffs_2,
+        R, T, E, F,
+        rvecs_l, tvecs_l, rvecs_r, tvecs_r,
+    ) = stereoCalibrationRevise(
+        image_list_l, image_list_r,
+        camera_matrix_1, dist_coeffs_1,
+        camera_matrix_2, dist_coeffs_2,
+        image_pts_list_l, image_pts_list_r,
+        obj_pts,
+        rvecs_l, tvecs_l, rvecs_r, tvecs_r,
+        R, T,
+        image_size,
+        image_nums
+    )
+    print('the ', i, 'th iteration')
+    print('re_projection_err: ', re_projection_err)
+
+    stereo_res = {
+        'cam1_k': camera_matrix_1.tolist(),
+        'cam2_k': camera_matrix_2.tolist(),
+        'dist_1': dist_coeffs_1.tolist(),
+        'dist_2': dist_coeffs_2.tolist(),
+        'R_l_r': R.tolist(),
+        't_l_r': T.tolist(),
+        'T': Rt2T(R, T).tolist(),
+        'E': E.tolist(),
+        'F': F.tolist(),
+    }
+
+    dump_yaml(stereo_res, 'stereo_res_%d.yaml'%i)
 
 print('stereo err: ', re_projection_err)
 print('camera_matrix_l: ', camera_matrix_1)
@@ -196,32 +217,6 @@ print('dist_coeffs_r: ', dist_coeffs_2)
 print('R: ', R)
 print('T: ', T)
 
-# (
-#     re_projection_err,
-#     camera_matrix_1, dist_coeffs_1,
-#     camera_matrix_2, dist_coeffs_2,
-#     R, T, E, F,
-#     rvecs_l, tvecs_l, rvecs_r, tvecs_r,
-# ) = stereoCalibrationRevise(
-#     image_list_l, image_list_r,
-#     camera_matrix_1, dist_coeffs_1,
-#     camera_matrix_2, dist_coeffs_2,
-#     image_pts_list_l, image_pts_list_r,
-#     obj_pts,
-#     rvecs_l, tvecs_l, rvecs_r, tvecs_r,
-#     R, T,
-#     image_size,
-#     image_nums
-# )
-
-# print('stereo err: ', re_projection_err)
-# print('camera_matrix_l: ', camera_matrix_1)
-# print('dist_coeffs_l: ', dist_coeffs_1)
-
-# print('camera_matrix_r: ', camera_matrix_2)
-# print('dist_coeffs_r: ', dist_coeffs_2)
-# print('R: ', R)
-# print('T: ', T)
 
 R1, R2, P1, P2, Q, validPixROI1, validPixROI2 = cv2.stereoRectify(camera_matrix_1, dist_coeffs_1, camera_matrix_2, dist_coeffs_2, image_size, R, T, flags=cv2.CALIB_ZERO_DISPARITY)
 print("R1", R1)
@@ -239,7 +234,5 @@ stereo_res = {
     't_l_r': T.tolist(),
     'T': Rt2T(R, T).tolist(),
     'E': E.tolist(),
-    'F': F.tolist(),
-}
-
-dump_yaml(stereo_res, 'stereo_res_240418.yaml')
+    'F': F.tolist(),}
+dump_yaml(stereo_res, 'stereo_res.yaml')
