@@ -62,6 +62,7 @@ def stereoCalibrationRevise(
     R,
     T,
     image_size,
+    pattern_size,
     image_nums
 ):
     
@@ -95,7 +96,7 @@ def stereoCalibrationRevise(
         render_path = 'temp_files/render_result/%02d_L.png'%idx
         img = cv2.imread(render_path)
 
-        is_found, center_pts = cv2.findCirclesGrid(cv2.bitwise_not(img), patternSize=(7, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
+        is_found, center_pts = cv2.findCirclesGrid(cv2.bitwise_not(img), patternSize=pattern_size, flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
 
         true_pts, _ = cv2.projectPoints(obj_pts, rvecs_l[idx], tvecs_l[idx], camera_matrix_1, dist_coeffs_1)
         image_pts = image_pts_list_l[idx]
@@ -120,7 +121,7 @@ def stereoCalibrationRevise(
     for idx in range(image_nums):
         render_path = 'temp_files/render_result/%02d_R.png'%idx
         img = cv2.imread(render_path)
-        is_found, center_pts = cv2.findCirclesGrid(cv2.bitwise_not(img), patternSize=(7, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
+        is_found, center_pts = cv2.findCirclesGrid(cv2.bitwise_not(img), patternSize=pattern_size, flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
         true_pts, _ = cv2.projectPoints(obj_pts, rvecs_r[idx], tvecs_r[idx], camera_matrix_2, dist_coeffs_2)
         image_pts = image_pts_list_r[idx]
         revised_pts = []

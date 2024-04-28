@@ -37,10 +37,33 @@ def draw_board(rect, circles, scale=10):
         cv2.circle(board, (cx, cy), r, (255), -1)
     return board
 
+def generate_obj_points(circles):
+    # first sort the circles by their y coordinate, then by their x coordinate
+    sorted_circles = sorted(circles, key=lambda x: (x[1], x[0]))
+    
 
+    #sorted_circles = sorted(circles, key=lambda x: x[0])
+    #sorted_circles = sorted(sorted_circles, key=lambda x: x[1])
+    # generate the obj points
+    obj_points = []
+    for circle in sorted_circles:
+        cx = circle[0]
+        cy = circle[1]
+        obj_points.append([cx, cy, 0])
+    return np.float32(obj_points)
 
-rect, circles = read_svg('board_svg/300x240.svg')
+def read_board_svg(svg_path):
+    rect, circles = read_svg(svg_path)
+    obj_points = generate_obj_points(circles)
+    board = draw_board(rect, circles)
+    return obj_points, board
 
-board = draw_board(rect, circles)
+obj_points, board = read_board_svg('board_svg/300x240.svg')
 
-cv2.imwrite('board_300x240.png', board)
+# rect, circles = read_svg('board_svg/300x240.svg')
+
+# print(circles)
+
+# board = draw_board(rect, circles)
+
+# cv2.imwrite('board_300x240.png', board)

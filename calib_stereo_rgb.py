@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import yaml
 from stereoCalibrationRevise import stereoCalibrationRevise, show_reproject_error, left_RT_to_right_RT
+from board import read_board_svg
 
 
 def Rt2T(R_3x3, t_vec3):
@@ -29,14 +30,16 @@ def read_images_from_path(path, file_name_head, file_name_tail, file_nums):
     return image_list
 
 def gen_obj_pts(pattern_size, resolution, padding):
-    obj_pts = []
-    for row in range(pattern_size[1]):
-        for col in range(pattern_size[0]):
-            if row % 2 == 0:
-                obj_pts.append([col * resolution + padding, row * resolution * 0.5 + padding, 0])
-            else:
-                obj_pts.append([col * resolution + 0.5 * resolution + padding, row * resolution * 0.5 + padding, 0])
-    return np.float32(obj_pts)
+    obj_pts, _ = read_board_svg("board_svg/300x240.svg")
+    return obj_pts
+    # obj_pts = []
+    # for row in range(pattern_size[1]):
+    #     for col in range(pattern_size[0]):
+    #         if row % 2 == 0:
+    #             obj_pts.append([col * resolution + padding, row * resolution * 0.5 + padding, 0])
+    #         else:
+    #             obj_pts.append([col * resolution + 0.5 * resolution + padding, row * resolution * 0.5 + padding, 0])
+    # return np.float32(obj_pts)
 
 def single_calibrate(image_list, obj_pts):
     global image_size
@@ -186,7 +189,7 @@ stereo_res = {
     'F': F.tolist(),}
 dump_yaml(stereo_res, 'stereo_res_origin.yaml')
 
-for i in range(10):
+for i in range(1):
     (
         re_projection_err,
         camera_matrix_1, dist_coeffs_1,
@@ -202,6 +205,7 @@ for i in range(10):
         rvecs_l, tvecs_l, rvecs_r, tvecs_r,
         R, T,
         image_size,
+        pattern_size,
         image_nums
     )
     print('the ', i, 'th iteration')
