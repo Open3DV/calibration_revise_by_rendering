@@ -22,7 +22,8 @@ def dump_yaml(data, filename, method="w", encoding="utf-8", **kwargs):
 def read_images_from_path(path, file_name_head, file_name_tail, file_nums):
     image_list = []
     for i in range(file_nums):
-        image_temp = cv2.imread(path + '/' + file_name_head + ('%d' % i) + file_name_tail)
+        image_path = path + '/' + file_name_head + ('%02d' % i) + file_name_tail
+        image_temp = cv2.imread(image_path)
         image_list.append(image_temp)
 
     return image_list
@@ -82,11 +83,11 @@ def single_calibrate(image_list, obj_pts):
     print('err: ', re_projection_err)
     return camera_matrix, dist_coeffs, image_pts_list, obj_pts_list, image_num_list, rvecs, tvecs
 
-img_l_path = "./240116_hk"
-img_r_path = "./240116_hk"
-pattern_size = (9, 13)
-resolution = 80
-padding = 60
+img_l_path = "./240428/240428_shenzhen_1.8m"
+img_r_path = "./240428/240428_shenzhen_1.8m"
+pattern_size = (7, 11)
+resolution = 40
+padding = 20
 image_size = [1624, 1240]
 image_size_rgb = [0, 0]
 image_nums = 50
@@ -163,7 +164,6 @@ assert len(image_pts_list_l) == len(image_pts_list_r), "not found equal num of b
 
 rvecs_r, tvecs_r = left_RT_to_right_RT(R, T, rvecs_l, tvecs_l)
 
-print('stereo err: ', re_projection_err)
 print('camera_matrix_l: ', camera_matrix_1)
 print('dist_coeffs_l: ', dist_coeffs_1)
 
@@ -172,8 +172,21 @@ print('dist_coeffs_r: ', dist_coeffs_2)
 print('R: ', R)
 print('T: ', T)
 
+print('stereo err: ', re_projection_err)
 
-for i in range(0):
+stereo_res = {
+    'cam1_k': camera_matrix_1.tolist(),
+    'cam2_k': camera_matrix_2.tolist(),
+    'dist_1': dist_coeffs_1.tolist(),
+    'dist_2': dist_coeffs_2.tolist(),
+    'R_l_r': R.tolist(),
+    't_l_r': T.tolist(),
+    'T': Rt2T(R, T).tolist(),
+    'E': E.tolist(),
+    'F': F.tolist(),}
+dump_yaml(stereo_res, 'stereo_res_origin.yaml')
+
+for i in range(10):
     (
         re_projection_err,
         camera_matrix_1, dist_coeffs_1,
@@ -208,31 +221,31 @@ for i in range(0):
 
     dump_yaml(stereo_res, 'stereo_res_%d.yaml'%i)
 
-print('stereo err: ', re_projection_err)
-print('camera_matrix_l: ', camera_matrix_1)
-print('dist_coeffs_l: ', dist_coeffs_1)
+# print('stereo err: ', re_projection_err)
+# print('camera_matrix_l: ', camera_matrix_1)
+# print('dist_coeffs_l: ', dist_coeffs_1)
 
-print('camera_matrix_r: ', camera_matrix_2)
-print('dist_coeffs_r: ', dist_coeffs_2)
-print('R: ', R)
-print('T: ', T)
+# print('camera_matrix_r: ', camera_matrix_2)
+# print('dist_coeffs_r: ', dist_coeffs_2)
+# print('R: ', R)
+# print('T: ', T)
 
 
-R1, R2, P1, P2, Q, validPixROI1, validPixROI2 = cv2.stereoRectify(camera_matrix_1, dist_coeffs_1, camera_matrix_2, dist_coeffs_2, image_size, R, T, flags=cv2.CALIB_ZERO_DISPARITY)
-print("R1", R1)
-print("R2", R2)
-print("P1", P1)
-print("P2", P2)
-print("Q", Q)
+# R1, R2, P1, P2, Q, validPixROI1, validPixROI2 = cv2.stereoRectify(camera_matrix_1, dist_coeffs_1, camera_matrix_2, dist_coeffs_2, image_size, R, T, flags=cv2.CALIB_ZERO_DISPARITY)
+# print("R1", R1)
+# print("R2", R2)
+# print("P1", P1)
+# print("P2", P2)
+# print("Q", Q)
 
-stereo_res = {
-    'cam1_k': camera_matrix_1.tolist(),
-    'cam2_k': camera_matrix_2.tolist(),
-    'dist_1': dist_coeffs_1.tolist(),
-    'dist_2': dist_coeffs_2.tolist(),
-    'R_l_r': R.tolist(),
-    't_l_r': T.tolist(),
-    'T': Rt2T(R, T).tolist(),
-    'E': E.tolist(),
-    'F': F.tolist(),}
-dump_yaml(stereo_res, 'stereo_res.yaml')
+# stereo_res = {
+#     'cam1_k': camera_matrix_1.tolist(),
+#     'cam2_k': camera_matrix_2.tolist(),
+#     'dist_1': dist_coeffs_1.tolist(),
+#     'dist_2': dist_coeffs_2.tolist(),
+#     'R_l_r': R.tolist(),
+#     't_l_r': T.tolist(),
+#     'T': Rt2T(R, T).tolist(),
+#     'E': E.tolist(),
+#     'F': F.tolist(),}
+# dump_yaml(stereo_res, 'stereo_res.yaml')

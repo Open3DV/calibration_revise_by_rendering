@@ -21,7 +21,7 @@ void read_param_xml(string xml_path, Mat& camera_intrinsic_l, Mat& camera_dist_l
 void render(string output_png, Mat rvec, Mat tvec, Mat intrinsic, Mat distortion, int img_width, int img_height)
 {
     float board_scale = 10.0;
-    Mat board = imread("board_800x600.png", 0);
+    Mat board = imread("board_300x240.png", 0);
     Mat sum_img = cv::Mat(img_height, img_width, CV_32SC1, Scalar(0));
     Mat n_img = cv::Mat(img_height, img_width, CV_16UC1, Scalar(0));
     Mat result_img = cv::Mat(img_height, img_width, CV_8UC1, Scalar(0));
