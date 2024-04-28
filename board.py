@@ -38,27 +38,34 @@ def draw_board(rect, circles, scale=10):
     return board
 
 def generate_obj_points(circles):
-    # first sort the circles by their y coordinate, then by their x coordinate
     sorted_circles = sorted(circles, key=lambda x: (x[1], x[0]))
-    
-
-    #sorted_circles = sorted(circles, key=lambda x: x[0])
-    #sorted_circles = sorted(sorted_circles, key=lambda x: x[1])
-    # generate the obj points
     obj_points = []
     for circle in sorted_circles:
         cx = circle[0]
         cy = circle[1]
         obj_points.append([cx, cy, 0])
-    return np.float32(obj_points)
+
+    # generate pattern size (N x M)
+    pattern_size = [0, 1]
+    for i in range(1, len(obj_points)):
+        if obj_points[i][1] != obj_points[i-1][1]:
+            pattern_size[1] += 1
+    pattern_size[0] = len(obj_points) // pattern_size[1]
+    assert len(obj_points) == pattern_size[0] * pattern_size[1]
+
+    return np.float32(obj_points), pattern_size
 
 def read_board_svg(svg_path):
     rect, circles = read_svg(svg_path)
-    obj_points = generate_obj_points(circles)
-    board = draw_board(rect, circles)
-    return obj_points, board
+    obj_points, pattern_size = generate_obj_points(circles)
+    board_image = draw_board(rect, circles)
+    return obj_points, pattern_size, board_image
 
-obj_points, board = read_board_svg('board_svg/300x240.svg')
+if __name__ == '__main__':
+    obj_points, pattern_size, board_image = read_board_svg('board_svg/300x240.svg')
+    print(obj_points)
+    print(pattern_size)
+    
 
 # rect, circles = read_svg('board_svg/300x240.svg')
 

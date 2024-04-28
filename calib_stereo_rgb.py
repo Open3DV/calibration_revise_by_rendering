@@ -29,18 +29,6 @@ def read_images_from_path(path, file_name_head, file_name_tail, file_nums):
 
     return image_list
 
-def gen_obj_pts(pattern_size, resolution, padding):
-    obj_pts, _ = read_board_svg("board_svg/300x240.svg")
-    return obj_pts
-    # obj_pts = []
-    # for row in range(pattern_size[1]):
-    #     for col in range(pattern_size[0]):
-    #         if row % 2 == 0:
-    #             obj_pts.append([col * resolution + padding, row * resolution * 0.5 + padding, 0])
-    #         else:
-    #             obj_pts.append([col * resolution + 0.5 * resolution + padding, row * resolution * 0.5 + padding, 0])
-    # return np.float32(obj_pts)
-
 def single_calibrate(image_list, obj_pts):
     global image_size
     image_pts_list = []
@@ -88,17 +76,13 @@ def single_calibrate(image_list, obj_pts):
 
 img_l_path = "./240428/240428_shenzhen_1.8m"
 img_r_path = "./240428/240428_shenzhen_1.8m"
-pattern_size = (7, 11)
-resolution = 40
-padding = 20
 image_size = [1624, 1240]
-image_size_rgb = [0, 0]
 image_nums = 50
 
 image_list_l = read_images_from_path(img_l_path, 'L', '.bmp', image_nums)
 image_list_r = read_images_from_path(img_r_path, 'R', '.bmp', image_nums)
 
-obj_pts = gen_obj_pts(pattern_size, resolution, padding)
+obj_pts, pattern_size, board_image = read_board_svg("board_svg/300x240.svg")
 
 camera_matrix_l, dist_coeffs_l, image_pts_list_l, obj_pts_list_l, image_list_num_l, rvecs_l, tvecs_l = single_calibrate(image_list_l, obj_pts)
 print("camera_matrix_l", camera_matrix_l)
