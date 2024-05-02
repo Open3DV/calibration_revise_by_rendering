@@ -65,6 +65,7 @@ if __name__ == '__main__':
     obj_points, pattern_size, board_image = read_board_svg('board_svg/300x240.svg')
     print(obj_points)
     print(pattern_size)
+    cv2.imwrite('board_300x240.png', board_image)
     
 
 # rect, circles = read_svg('board_svg/300x240.svg')
