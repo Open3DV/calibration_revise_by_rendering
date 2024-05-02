@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import yaml
-from stereoCalibrationRevise import stereoCalibrationRevise, show_reproject_error, left_RT_to_right_RT
+from stereoCalibrationRevise import stereoCalibrationRevise, show_reproject_error, left_RT_to_right_RT, stereoCalibrationExConstrant
 from board import read_board_svg
 
 
@@ -148,6 +148,48 @@ assert len(image_pts_list_l) == len(image_pts_list_r), "not found equal num of b
     R=None,
     T=None,
 )
+
+# bad_R = np.array([[0.707,0.707,0],[0.707,0.707,0],[0,0,1]], dtype="float64")
+# camera_matrix_l[0, 0] = 3000
+# camera_matrix_l[1, 1] = 3000
+# camera_matrix_r[0, 0] = 3000
+# camera_matrix_r[1, 1] = 3000
+
+print('\nbefore optimization:')
+print('camera_matrix_l: ', camera_matrix_1)
+print('dist_coeffs_l: ', dist_coeffs_1)
+
+print('camera_matrix_r: ', camera_matrix_2)
+print('dist_coeffs_r: ', dist_coeffs_2)
+print('R: ', R)
+print('T: ', T)
+
+(camera_matrix_1, dist_coeffs_1, 
+ camera_matrix_2, dist_coeffs_2, 
+ rvecs_l, tvecs_l, 
+ R, T
+ ) = stereoCalibrationExConstrant(
+        camera_matrix_1, dist_coeffs_1,
+        camera_matrix_2, dist_coeffs_2,
+        image_pts_list_l, image_pts_list_r,
+        obj_pts,
+        rvecs_l, tvecs_l,
+        R,
+        T,
+        image_size,
+        image_nums
+    )
+
+print('\nafter optimization:')
+print('camera_matrix_l: ', camera_matrix_1)
+print('dist_coeffs_l: ', dist_coeffs_1)
+
+print('camera_matrix_r: ', camera_matrix_2)
+print('dist_coeffs_r: ', dist_coeffs_2)
+print('R: ', R)
+print('T: ', T)
+
+assert 0
 
 rvecs_r, tvecs_r = left_RT_to_right_RT(R, T, rvecs_l, tvecs_l)
 
